@@ -18,18 +18,26 @@ type SliceStack struct {
 	sync.RWMutex
 }
 
-func NewSliceStack(cap int) *SliceStack{
-	return &SliceStack{arr:make([]interface{},0,cap)}
+func NewSliceStack(cap int) *SliceStack {
+	return &SliceStack{arr:make([]interface{}, 0, cap)}
 }
 
 //判断是否为空
-func (s *SliceStack) IsEmpty()bool{
-	return len(s.arr) == 0
+func (s *SliceStack) IsEmpty() bool {
+	s.RLock()
+	l := len(s.arr)
+	s.RUnlock()
+
+	return l == 0
 }
 
 //返回大小
-func (s *SliceStack)Sizeof()int{
-	return len(s.arr)
+func (s *SliceStack) Sizeof() int {
+	s.RLock()
+	l := len(s.arr)
+	s.RUnlock()
+
+	return l
 }
 
 //返回栈顶元素
@@ -38,33 +46,34 @@ func (s *SliceStack)GetBack()interface{}{
 		return nil
 	}
 
-	return s.arr[len(s.arr) - 1 ]
+	s.RLock()
+	ret := s.arr[len(s.arr) - 1 ]
+	s.RUnlock()
+
+	return ret
 }
 
 //弹出栈元素
 func (s *SliceStack)Pop()interface{}{
-	s.Lock()
-	defer s.Unlock()
 	if s.IsEmpty() {
 		return nil
 	}
 
+	s.Lock()
 	ret := s.arr[len(s.arr)-1]    // 返回栈顶元素
 	s.arr = s.arr[:len(s.arr)-1]     // 重新切片
+	s.Unlock()
+
 	return ret
 }
 
 //Push栈元素
 func (s *SliceStack) Push(ele interface{}) interface{}{
 	s.Lock()
-	defer s.Unlock()
 	s.arr = append(s.arr,ele)
+	s.Unlock()
 	return ele
 }
-
-
-
-
 
 
 /*
@@ -91,11 +100,19 @@ func NewLinkStack()*LinkStack{
 }
 
 func (s *LinkStack) IsEmpty() bool {
-	return s.size == 0
+	s.RLock()
+	size := s.size
+	s.RUnlock()
+
+	return size == 0
 }
 
 func (s *LinkStack) Sizeof() int {
-	return s.size
+	s.RLock()
+	size := s.size
+	s.RUnlock()
+
+	return size
 }
 
 // 返回栈顶元素
@@ -104,21 +121,26 @@ func (s *LinkStack) GetBack() interface{} {
 		return nil
 	}
 
-	return s.head.Next.Data
+	s.RLock()
+	data := s.head.Next.Data
+	s.RUnlock()
+
+	return data
 }
 
 // 弹出栈顶元素
 func (s *LinkStack) Pop() interface{}{
-	s.Lock()
-	defer s.Unlock()
-
 	if s.IsEmpty() {
 		return nil
 	}
 
+	s.Lock()
+
 	data := s.head.Next.Data
 	s.head.Next = s.head.Next.Next
 	s.size--
+
+	s.Unlock()
 
 	return data
 }
@@ -126,11 +148,12 @@ func (s *LinkStack) Pop() interface{}{
 // 向栈顶压入元素
 func (s *LinkStack) Push(ele interface{}) interface{}{
 	s.Lock()
-	s.Unlock()
 
 	node := &LNode{Data:ele,Next:s.head.Next}
 	s.head.Next = node
 	s.size++
+
+	s.Unlock()
 
 	return ele
 }
